@@ -854,6 +854,11 @@ def get_all_tips():
     return {"tips": tips}
 
 
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
+
+
 @app.post("/admin/tips/{tip_id}/status")
 def update_tip_status(tip_id: str, status: str = Form(...)):
     """Admin: update tip status — pending/verified/rejected/rewarded."""
