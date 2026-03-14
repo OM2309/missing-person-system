@@ -1,12 +1,25 @@
-fastapi==0.110.0
-uvicorn[standard]==0.29.0
-python-multipart==0.0.9
-pymongo==4.6.3
-deepface==0.0.93
-opencv-python-headless==4.9.0.80
-numpy==1.26.4
-tf-keras==2.16.0
-tensorflow==2.16.1
-Pillow==10.3.0
-python-dotenv==1.0.1
-tensorflow==2.20.0
+# fastapi==0.110.0
+# uvicorn[standard]==0.29.0
+# python-multipart==0.0.9
+# pymongo==4.6.3
+# deepface==0.0.93
+# opencv-python-headless==4.9.0.80
+# numpy==1.26.4
+# tf-keras==2.16.0
+# tensorflow==2.16.1
+# Pillow==10.3.0
+# python-dotenv==1.0.1
+# tensorflow==2.20.0
+
+fastapi
+uvicorn[standard]
+python-multipart
+pymongo
+deepface
+opencv-python-headless
+numpy
+tf-keras
+tensorflow
+Pillow
+python-dotenv
+tensorflow
