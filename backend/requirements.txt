@@ -9,3 +9,4 @@ tf-keras==2.16.0
 tensorflow==2.16.1
 Pillow==10.3.0
 python-dotenv==1.0.1
+tensorflow==2.20.0
