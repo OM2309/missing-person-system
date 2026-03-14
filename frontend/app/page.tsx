@@ -13,6 +13,7 @@ export default function Home() {
   const [tab, setTab] = useState<"upload" | "scan" | "persons">("upload");
   const [persons, setPersons] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [message, setMessage] = useState<{
     text: string;
     type: "success" | "error" | "info";
@@ -264,22 +265,130 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <nav className="gov-nav">
-            <Link href="/ai-detactor" className="gov-nav-btn outline">
-              AI Image Detector
-            </Link>
-            <Link href="/missing-people" className="gov-nav-btn outline">
-              Missing People
-            </Link>
-            <Link href="/group-scan" className="gov-nav-btn outline">
-              👥 Group Scan
-            </Link>
-            <Link href="/camera" className="gov-nav-btn outline">
-              📱 Live Camera
-            </Link>
+
+          <nav
+            className="gov-nav"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              position: "relative",
+            }}
+          >
+            {/* Admin — always visible */}
             <Link href="/admin" className="gov-nav-btn">
               ⚡ Admin Panel
             </Link>
+
+            {/* More dropdown */}
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="gov-nav-btn outline"
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                ☰ More <span style={{ fontSize: "10px" }}>▼</span>
+              </button>
+
+              {menuOpen && (
+                <>
+                  {/* Backdrop to close */}
+                  <div
+                    onClick={() => setMenuOpen(false)}
+                    style={{ position: "fixed", inset: 0, zIndex: 40 }}
+                  />
+
+                  {/* Dropdown */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      top: "calc(100% + 8px)",
+                      background: "#fff",
+                      border: "1px solid #e8eaf0",
+                      borderRadius: "6px",
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                      minWidth: "210px",
+                      zIndex: 50,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {[
+                      {
+                        href: "/missing-people",
+                        icon: "🏆",
+                        label: "Missing People",
+                        sub: "Public reward portal",
+                      },
+                      {
+                        href: "/group-scan",
+                        icon: "👥",
+                        label: "Group Scan",
+                        sub: "Crowd photo detection",
+                      },
+                      {
+                        href: "/camera",
+                        icon: "📱",
+                        label: "Live Camera",
+                        sub: "Mobile scanner",
+                      },
+                      {
+                        href: "/ai-detector",
+                        icon: "🔬",
+                        label: "AI Image Detector",
+                        sub: "Detect fake photos",
+                      },
+                    ].map((item, i, arr) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMenuOpen(false)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          padding: "11px 16px",
+                          textDecoration: "none",
+                          color: "#1a1a2e",
+                          borderBottom:
+                            i < arr.length - 1 ? "1px solid #f0f2f7" : "none",
+                          background: "#fff",
+                          transition: "background .15s",
+                        }}
+                        onMouseOver={(e) =>
+                          (e.currentTarget.style.background = "#f8f9ff")
+                        }
+                        onMouseOut={(e) =>
+                          (e.currentTarget.style.background = "#fff")
+                        }
+                      >
+                        <span style={{ fontSize: "18px" }}>{item.icon}</span>
+                        <div>
+                          <p
+                            style={{
+                              fontSize: "13px",
+                              fontWeight: 600,
+                              margin: 0,
+                            }}
+                          >
+                            {item.label}
+                          </p>
+                          <p
+                            style={{
+                              fontSize: "11px",
+                              color: "#9ca3af",
+                              margin: 0,
+                            }}
+                          >
+                            {item.sub}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </nav>
         </div>
         <div className="saffron-bar" />

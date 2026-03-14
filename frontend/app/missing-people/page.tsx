@@ -12,7 +12,6 @@ export default function MissingPeoplePage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Tip form
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -72,13 +71,6 @@ export default function MissingPeoplePage() {
     setSubmitting(false);
   }
 
-  const statusColors: Record<string, string> = {
-    pending: "#d97706",
-    verified: "#16a34a",
-    rejected: "#dc2626",
-    rewarded: "#7c3aed",
-  };
-
   return (
     <div
       style={{
@@ -100,8 +92,9 @@ export default function MissingPeoplePage() {
         .panel { background: #fff; border: 1px solid #e8eaf0; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
         .person-card { background: #fff; border: 2px solid #e8eaf0; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all .2s; }
         .person-card:hover { border-color: #1a3a6b; box-shadow: 0 4px 16px rgba(26,58,107,.12); transform: translateY(-2px); }
-        .person-card.selected { border-color: #f47920; box-shadow: 0 0 0 3px rgba(244,121,32,.15); }
-        .reward-badge { background: linear-gradient(135deg,#f59e0b,#f47920); color: #fff; font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 0 0 8px 8px; text-align: center; }
+        .person-card.sel { border-color: #f47920; box-shadow: 0 0 0 3px rgba(244,121,32,.15); }
+        .reward-badge { background: linear-gradient(135deg,#f59e0b,#f47920); color: #fff; font-size: 13px; font-weight: 700; padding: 8px 14px; text-align: center; }
+        .no-reward { background: #f4f6f9; padding: 8px; text-align: center; font-size: 11px; color: #9ca3af; }
         .form-label { display: block; font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
         .form-input { width: 100%; padding: 10px 14px; border: 1.5px solid #d1d5db; border-radius: 4px; font-family: 'Inter',sans-serif; font-size: 14px; color: #1a1a2e; outline: none; transition: border-color .15s; background: #fff; }
         .form-input:focus { border-color: #1a3a6b; box-shadow: 0 0 0 3px rgba(26,58,107,.08); }
@@ -112,16 +105,15 @@ export default function MissingPeoplePage() {
         .btn-submit:disabled { background: #9ca3af; cursor: not-allowed; }
         .upload-box { border: 2px dashed #d1d5db; border-radius: 6px; cursor: pointer; transition: all .15s; display: block; }
         .upload-box:hover { border-color: #1a3a6b; background: #f8f9ff; }
-        .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; padding: 12px 16px; display: flex; gap: 10px; font-size: 13px; color: #1e40af; line-height: 1.6; }
         .hero { background: linear-gradient(135deg,#1a3a6b,#0f2a55); color: #fff; padding: 40px 24px; }
         .hero-inner { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 32px; flex-wrap: wrap; }
-        .status-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
         .step-num { width: 28px; height: 28px; border-radius: 50%; background: #1a3a6b; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
         .gov-footer { background: #1a3a6b; color: rgba(255,255,255,.7); text-align: center; padding: 20px; font-size: 12px; margin-top: 60px; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .fade-in { animation: fadeIn .4s ease; }
+        .selected-preview { display: flex; gap: 12px; align-items: center; background: #f8f9ff; border: 1px solid #c7d2fe; border-radius: 6px; padding: 10px 12px; margin-bottom: 20px; }
       `}</style>
 
       {/* Top Bar */}
@@ -274,13 +266,13 @@ export default function MissingPeoplePage() {
               },
               {
                 n: 2,
-                t: "Fill Details",
+                t: "Fill Your Details",
                 d: "Enter your name, email, phone and sighting location",
               },
               {
                 n: 3,
                 t: "Upload Photo",
-                d: "Attach a photo if you have captured them",
+                d: "Attach a photo of the sighting if available",
               },
               {
                 n: 4,
@@ -324,7 +316,7 @@ export default function MissingPeoplePage() {
             alignItems: "start",
           }}
         >
-          {/* Left: Missing Persons List */}
+          {/* LEFT — Missing Persons List */}
           <div>
             <div
               style={{
@@ -335,7 +327,7 @@ export default function MissingPeoplePage() {
               }}
             >
               <h2 style={{ fontSize: "16px", fontWeight: 600 }}>
-                Missing Persons ({persons.length})
+                Active Cases ({persons.length})
               </h2>
               {selected && (
                 <button
@@ -372,6 +364,15 @@ export default function MissingPeoplePage() {
                     margin: "0 auto",
                   }}
                 />
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "#9ca3af",
+                    marginTop: "12px",
+                  }}
+                >
+                  Loading cases...
+                </p>
               </div>
             ) : persons.length === 0 ? (
               <div
@@ -409,7 +410,7 @@ export default function MissingPeoplePage() {
                 {persons.map((p) => (
                   <div
                     key={p.id}
-                    className={`person-card ${selected?.id === p.id ? "selected" : ""}`}
+                    className={`person-card ${selected?.id === p.id ? "sel" : ""}`}
                     onClick={() => setSelected(p)}
                   >
                     <div style={{ position: "relative" }}>
@@ -444,6 +445,23 @@ export default function MissingPeoplePage() {
                           ✓
                         </div>
                       )}
+                      {p.reward > 0 && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "10px",
+                            left: "10px",
+                            background: "rgba(0,0,0,0.7)",
+                            color: "#f59e0b",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            padding: "3px 8px",
+                            borderRadius: "20px",
+                          }}
+                        >
+                          🏆 ₹{p.reward.toLocaleString()}
+                        </div>
+                      )}
                     </div>
                     <div style={{ padding: "12px 14px" }}>
                       <h3
@@ -463,7 +481,7 @@ export default function MissingPeoplePage() {
                           style={{
                             fontSize: "11px",
                             color: "#9ca3af",
-                            marginTop: "4px",
+                            marginTop: "5px",
                             display: "-webkit-box",
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: "vertical",
@@ -479,17 +497,7 @@ export default function MissingPeoplePage() {
                         🏆 Reward: ₹{p.reward.toLocaleString()}
                       </div>
                     ) : (
-                      <div
-                        style={{
-                          background: "#f4f6f9",
-                          padding: "8px",
-                          textAlign: "center",
-                          fontSize: "11px",
-                          color: "#9ca3af",
-                        }}
-                      >
-                        No reward listed
-                      </div>
+                      <div className="no-reward">No reward listed</div>
                     )}
                   </div>
                 ))}
@@ -497,7 +505,7 @@ export default function MissingPeoplePage() {
             )}
           </div>
 
-          {/* Right: Tip Submission Form */}
+          {/* RIGHT — Tip Submission Form */}
           <div style={{ position: "sticky", top: "20px" }}>
             <div className="panel">
               <div
@@ -530,7 +538,7 @@ export default function MissingPeoplePage() {
                   <p style={{ fontSize: "11px", color: "#888" }}>
                     {selected
                       ? `For: ${selected.name}`
-                      : "Select a person first"}
+                      : "Select a person from the list"}
                   </p>
                 </div>
               </div>
@@ -541,25 +549,89 @@ export default function MissingPeoplePage() {
                     <div style={{ fontSize: "40px", marginBottom: "10px" }}>
                       👈
                     </div>
-                    <p style={{ fontSize: "13px", color: "#9ca3af" }}>
-                      Click on a missing person from the list to submit a tip
+                    <p
+                      style={{
+                        fontSize: "13px",
+                        color: "#9ca3af",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      Click on any missing person from the left to submit a tip
+                      and claim the reward
                     </p>
                   </div>
-                ) : (
-                  <>
-                    {/* Selected person preview */}
-                    <div
+                ) : success ? (
+                  <div
+                    className="fade-in"
+                    style={{ textAlign: "center", padding: "20px 0" }}
+                  >
+                    <div style={{ fontSize: "52px", marginBottom: "12px" }}>
+                      ✅
+                    </div>
+                    <h3
                       style={{
-                        display: "flex",
-                        gap: "12px",
-                        alignItems: "center",
-                        background: "#f8f9ff",
-                        border: "1px solid #e8eaf0",
-                        borderRadius: "6px",
-                        padding: "10px 12px",
+                        fontSize: "16px",
+                        fontWeight: 700,
+                        color: "#15803d",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      Tip Submitted!
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: "13px",
+                        color: "#374151",
+                        lineHeight: 1.7,
                         marginBottom: "20px",
                       }}
                     >
+                      {success}
+                    </p>
+                    <div
+                      style={{
+                        background: "#f0fdf4",
+                        border: "1px solid #86efac",
+                        borderRadius: "6px",
+                        padding: "12px",
+                        marginBottom: "16px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          color: "#166534",
+                          fontWeight: 500,
+                        }}
+                      >
+                        📧 Our team will contact you on your email once the tip
+                        is verified.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSuccess(null);
+                        setSelected(null);
+                      }}
+                      style={{
+                        background: "#1a3a6b",
+                        color: "#fff",
+                        border: "none",
+                        padding: "10px 24px",
+                        borderRadius: "4px",
+                        fontFamily: "Inter,sans-serif",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Submit Another Tip
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmitTip}>
+                    {/* Selected person preview */}
+                    <div className="selected-preview">
                       <img
                         src={`${API_BASE}${selected.image_url}`}
                         alt={selected.name}
@@ -568,6 +640,7 @@ export default function MissingPeoplePage() {
                           height: "48px",
                           borderRadius: "6px",
                           objectFit: "cover",
+                          flexShrink: 0,
                         }}
                       />
                       <div style={{ flex: 1 }}>
@@ -584,210 +657,186 @@ export default function MissingPeoplePage() {
                             background: "#fef3c7",
                             border: "1px solid #fcd34d",
                             borderRadius: "4px",
-                            padding: "4px 10px",
+                            padding: "5px 10px",
                             fontSize: "12px",
                             fontWeight: 700,
                             color: "#92400e",
+                            flexShrink: 0,
                           }}
                         >
-                          ₹{selected.reward.toLocaleString()}
+                          🏆 ₹{selected.reward.toLocaleString()}
                         </div>
                       )}
                     </div>
 
-                    {success ? (
+                    {error && (
                       <div
-                        className="fade-in"
-                        style={{ textAlign: "center", padding: "20px 0" }}
+                        style={{
+                          background: "#fef2f2",
+                          border: "1px solid #fca5a5",
+                          borderRadius: "4px",
+                          padding: "10px 14px",
+                          fontSize: "13px",
+                          color: "#dc2626",
+                          marginBottom: "14px",
+                        }}
                       >
-                        <div style={{ fontSize: "48px", marginBottom: "12px" }}>
-                          ✅
-                        </div>
-                        <h3
-                          style={{
-                            fontSize: "15px",
-                            fontWeight: 600,
-                            color: "#15803d",
-                            marginBottom: "8px",
-                          }}
-                        >
-                          Tip Submitted!
-                        </h3>
-                        <p
-                          style={{
-                            fontSize: "13px",
-                            color: "#374151",
-                            lineHeight: 1.6,
-                          }}
-                        >
-                          {success}
-                        </p>
-                        <button
-                          onClick={() => setSuccess(null)}
-                          style={{
-                            marginTop: "16px",
-                            background: "#1a3a6b",
-                            color: "#fff",
-                            border: "none",
-                            padding: "10px 24px",
-                            borderRadius: "4px",
-                            fontFamily: "Inter,sans-serif",
-                            fontSize: "13px",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                          }}
-                        >
-                          Submit Another Tip
-                        </button>
+                        ❌ {error}
                       </div>
-                    ) : (
-                      <form onSubmit={handleSubmitTip}>
-                        {error && (
-                          <div
+                    )}
+
+                    <div style={{ marginBottom: "14px" }}>
+                      <label className="form-label">Your Full Name *</label>
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Enter your full name"
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: "14px" }}>
+                      <label className="form-label">Email Address *</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: "14px" }}>
+                      <label className="form-label">Contact Number *</label>
+                      <input
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+91 98765 43210"
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: "14px" }}>
+                      <label className="form-label">
+                        Where did you see them? *
+                      </label>
+                      <input
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="e.g. Connaught Place, New Delhi"
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: "14px" }}>
+                      <label className="form-label">Additional Details</label>
+                      <textarea
+                        value={desc}
+                        onChange={(e) => setDesc(e.target.value)}
+                        placeholder="Date, time, what they were wearing, any other details..."
+                        className="form-input"
+                        rows={3}
+                      />
+                    </div>
+                    <div style={{ marginBottom: "16px" }}>
+                      <label className="form-label">
+                        Upload Sighting Photo (optional)
+                      </label>
+                      <label
+                        className="upload-box"
+                        style={{ overflow: "hidden" }}
+                      >
+                        {photoPreview ? (
+                          <img
+                            src={photoPreview}
+                            alt="preview"
                             style={{
-                              background: "#fef2f2",
-                              border: "1px solid #fca5a5",
-                              borderRadius: "4px",
-                              padding: "10px 14px",
-                              fontSize: "13px",
-                              color: "#dc2626",
-                              marginBottom: "16px",
+                              width: "100%",
+                              height: "120px",
+                              objectFit: "cover",
+                              display: "block",
                             }}
-                          >
-                            ❌ {error}
+                          />
+                        ) : (
+                          <div style={{ padding: "20px", textAlign: "center" }}>
+                            <div
+                              style={{ fontSize: "24px", marginBottom: "6px" }}
+                            >
+                              📷
+                            </div>
+                            <p style={{ fontSize: "12px", color: "#6b7280" }}>
+                              Click to attach a photo
+                            </p>
                           </div>
                         )}
-
-                        <div style={{ marginBottom: "14px" }}>
-                          <label className="form-label">Your Full Name *</label>
-                          <input
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Enter your full name"
-                            className="form-input"
-                            required
-                          />
-                        </div>
-                        <div style={{ marginBottom: "14px" }}>
-                          <label className="form-label">Email Address *</label>
-                          <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="your@email.com"
-                            className="form-input"
-                            required
-                          />
-                        </div>
-                        <div style={{ marginBottom: "14px" }}>
-                          <label className="form-label">Contact Number *</label>
-                          <input
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder="+91 98765 43210"
-                            className="form-input"
-                            required
-                          />
-                        </div>
-                        <div style={{ marginBottom: "14px" }}>
-                          <label className="form-label">
-                            Sighting Location *
-                          </label>
-                          <input
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            placeholder="e.g. Connaught Place, New Delhi"
-                            className="form-input"
-                            required
-                          />
-                        </div>
-                        <div style={{ marginBottom: "14px" }}>
-                          <label className="form-label">Description</label>
-                          <textarea
-                            value={desc}
-                            onChange={(e) => setDesc(e.target.value)}
-                            placeholder="Any additional details about when/where you saw them..."
-                            className="form-input"
-                            rows={3}
-                          />
-                        </div>
-                        <div style={{ marginBottom: "20px" }}>
-                          <label className="form-label">
-                            Upload Photo (optional)
-                          </label>
-                          <label
-                            className="upload-box"
-                            style={{ overflow: "hidden" }}
-                          >
-                            {photoPreview ? (
-                              <img
-                                src={photoPreview}
-                                alt="preview"
-                                style={{
-                                  width: "100%",
-                                  height: "120px",
-                                  objectFit: "cover",
-                                  display: "block",
-                                }}
-                              />
-                            ) : (
-                              <div
-                                style={{ padding: "20px", textAlign: "center" }}
-                              >
-                                <div
-                                  style={{
-                                    fontSize: "24px",
-                                    marginBottom: "6px",
-                                  }}
-                                >
-                                  📷
-                                </div>
-                                <p
-                                  style={{ fontSize: "12px", color: "#6b7280" }}
-                                >
-                                  Attach a photo if available
-                                </p>
-                              </div>
-                            )}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handlePhoto}
-                              style={{ display: "none" }}
-                            />
-                          </label>
-                        </div>
-
-                        <div
-                          className="info-box"
-                          style={{ marginBottom: "16px" }}
-                        >
-                          <span style={{ fontSize: "14px", flexShrink: 0 }}>
-                            🔒
-                          </span>
-                          <span style={{ fontSize: "12px" }}>
-                            Your information is confidential and will only be
-                            used by authorities to verify the tip.
-                          </span>
-                        </div>
-
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhoto}
+                          style={{ display: "none" }}
+                        />
+                      </label>
+                      {photoPreview && (
                         <button
-                          type="submit"
-                          disabled={submitting}
-                          className="btn-submit"
+                          type="button"
+                          onClick={() => {
+                            setPhoto(null);
+                            setPhotoPreview(null);
+                          }}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            fontSize: "12px",
+                            color: "#9ca3af",
+                            cursor: "pointer",
+                            fontFamily: "Inter,sans-serif",
+                            marginTop: "4px",
+                          }}
                         >
-                          {submitting ? (
-                            <>
-                              <span className="spinner" />
-                              Submitting...
-                            </>
-                          ) : (
-                            "💡 Submit Tip & Claim Reward"
-                          )}
+                          × Remove photo
                         </button>
-                      </form>
-                    )}
-                  </>
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        background: "#eff6ff",
+                        border: "1px solid #bfdbfe",
+                        borderRadius: "4px",
+                        padding: "10px 14px",
+                        marginBottom: "14px",
+                        display: "flex",
+                        gap: "8px",
+                      }}
+                    >
+                      <span style={{ fontSize: "14px" }}>🔒</span>
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          color: "#1e40af",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        Your information is confidential and will only be used
+                        by authorities to verify the tip.
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="btn-submit"
+                    >
+                      {submitting ? (
+                        <>
+                          <span className="spinner" />
+                          Submitting...
+                        </>
+                      ) : (
+                        "💡 Submit Tip & Claim Reward"
+                      )}
+                    </button>
+                  </form>
                 )}
               </div>
             </div>
@@ -801,7 +850,7 @@ export default function MissingPeoplePage() {
           Affairs, Government of India
         </p>
         <p style={{ marginTop: "4px" }}>
-          Helpline: 112 | All tips are confidential
+          Helpline: 112 | All tips are strictly confidential
         </p>
       </footer>
     </div>
