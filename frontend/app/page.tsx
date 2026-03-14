@@ -265,6 +265,12 @@ export default function Home() {
             </div>
           </div>
           <nav className="gov-nav">
+            <Link href="/ai-detactor" className="gov-nav-btn outline">
+              AI Image Detector
+            </Link>
+            <Link href="/missing-people" className="gov-nav-btn outline">
+              Missing People
+            </Link>
             <Link href="/group-scan" className="gov-nav-btn outline">
               👥 Group Scan
             </Link>

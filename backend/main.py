@@ -61,7 +61,7 @@ def compare_faces(img1_path: str, img2_path: str) -> dict:
         result = DeepFace.verify(
             img1_path=img1_path,
             img2_path=img2_path,
-            model_name="VGG-Face",
+            model_name="Facenet",
             enforce_detection=False,
             distance_metric="cosine"
         )
@@ -77,7 +77,7 @@ def analyze_video_for_person(video_path: str, person_img_path: str, person_id: s
     """Scan video frames and find matching person - runs in thread."""
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS) or 25
-    frame_interval = max(1, int(fps * 2))  # Check every 2 seconds
+    frame_interval = max(1, int(fps * 2))
     frame_count = 0
     matches_found = []
 
@@ -90,7 +90,6 @@ def analyze_video_for_person(video_path: str, person_img_path: str, person_id: s
             timestamp_sec = frame_count / fps
             timestamp_str = f"{int(timestamp_sec // 60)}m {int(timestamp_sec % 60)}s"
 
-            # Save frame temporarily
             frame_file = f"uploads/frames/frame_{uuid.uuid4().hex}.jpg"
             cv2.imwrite(frame_file, frame)
 
@@ -114,7 +113,6 @@ def analyze_video_for_person(video_path: str, person_img_path: str, person_id: s
 
     cap.release()
 
-    # Save all matches to DB
     if matches_found:
         match_doc = {
             "_id": str(uuid.uuid4()),
@@ -141,8 +139,6 @@ def analyze_video_for_person(video_path: str, person_img_path: str, person_id: s
             "read": False
         }
         alerts_col.insert_one(alert_doc)
-
-        # Broadcast to admin via websocket
         asyncio.run(broadcast_alert(alert_doc))
 
     return matches_found
@@ -154,7 +150,7 @@ def analyze_video_for_person(video_path: str, person_img_path: str, person_id: s
 
 @app.get("/")
 def root():
-    return {"status": "Missing Person API Running", "endpoints": ["/upload-person", "/scan-video", "/scan-frame", "/persons", "/matches", "/alerts"]}
+    return {"status": "Missing Person API Running", "endpoints": ["/upload-person", "/scan-video", "/scan-frame", "/scan-group-photo", "/detect-ai-image", "/persons", "/matches", "/alerts"]}
 
 
 @app.post("/upload-person")
@@ -164,7 +160,6 @@ async def upload_person(
     description: str = Form(default=""),
     image: UploadFile = File(...)
 ):
-    """Upload missing person image."""
     person_id = str(uuid.uuid4())
     ext = image.filename.split(".")[-1].lower()
     filename = f"{person_id}.{ext}"
@@ -184,16 +179,11 @@ async def upload_person(
         "created_at": datetime.utcnow().isoformat()
     }
     persons_col.insert_one(doc)
-
     return {"success": True, "person_id": person_id, "message": f"Person '{name}' registered successfully"}
 
 
 @app.post("/scan-video")
-async def scan_video(
-    person_id: str = Form(...),
-    video: UploadFile = File(...)
-):
-    """Upload video and scan for the person."""
+async def scan_video(person_id: str = Form(...), video: UploadFile = File(...)):
     person = persons_col.find_one({"_id": person_id})
     if not person:
         raise HTTPException(status_code=404, detail="Person not found")
@@ -205,7 +195,6 @@ async def scan_video(
     with open(video_path, "wb") as f:
         shutil.copyfileobj(video.file, f)
 
-    # Run analysis in background thread
     thread = threading.Thread(
         target=analyze_video_for_person,
         args=(video_path, person["image_path"], person_id, person["name"])
@@ -213,16 +202,11 @@ async def scan_video(
     thread.daemon = True
     thread.start()
 
-    return {
-        "success": True,
-        "video_id": video_id,
-        "message": f"Video uploaded. Scanning for {person['name']}... Check alerts for results."
-    }
+    return {"success": True, "video_id": video_id, "message": f"Video uploaded. Scanning for {person['name']}... Check alerts for results."}
 
 
 @app.post("/scan-frame")
 async def scan_frame(image: UploadFile = File(...)):
-    """Scan a single frame (from mobile camera) against all active persons."""
     frame_id = str(uuid.uuid4())
     frame_filename = f"cam_{frame_id}.jpg"
     frame_path = f"uploads/frames/{frame_filename}"
@@ -274,13 +258,11 @@ async def scan_frame(image: UploadFile = File(...)):
                     "read": False
                 }
                 alerts_col.insert_one(alert_doc)
-
                 asyncio.create_task(broadcast_alert(alert_doc))
         except Exception as e:
             print(f"Error comparing with {person['name']}: {e}")
 
     if not results:
-        # Clean up frame if no match
         if os.path.exists(frame_path):
             os.remove(frame_path)
 
@@ -335,9 +317,6 @@ async def websocket_admin(websocket: WebSocket):
             admin_connections.remove(websocket)
 
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-
 # ========================
 # CCTV STREAM ROUTES
 # ========================
@@ -347,7 +326,6 @@ streams_col = db["cctv_streams"]
 
 
 def scan_rtsp_stream(stream_id: str, rtsp_url: str, stream_name: str, stop_flag: dict):
-    """Continuously scan RTSP stream for missing persons."""
     import time
     print(f"Starting CCTV scan: {stream_name} ({rtsp_url})")
     consecutive_failures = 0
@@ -371,7 +349,7 @@ def scan_rtsp_stream(stream_id: str, rtsp_url: str, stream_name: str, stop_flag:
             if not ret:
                 break
 
-            time.sleep(30)  # scan every 30 seconds
+            time.sleep(30)
 
             frame_filename = f"cctv_{stream_id}_{uuid.uuid4().hex[:8]}.jpg"
             frame_path = f"uploads/frames/{frame_filename}"
@@ -485,22 +463,15 @@ async def scan_group_photo(
     person_id: str = Form(...),
     group_photo: UploadFile = File(...)
 ):
-    """
-    Scan a group/crowd photo for a registered missing person.
-    Detects all faces in the group photo, compares each with the target person,
-    draws bounding boxes on matches, returns annotated image as base64.
-    """
     person = persons_col.find_one({"_id": person_id})
     if not person:
         raise HTTPException(status_code=404, detail="Person not found")
 
-    # Save group photo
     group_id = str(uuid.uuid4())
     group_path = f"uploads/frames/group_{group_id}.jpg"
     with open(group_path, "wb") as f:
         shutil.copyfileobj(group_photo.file, f)
 
-    # Read image with OpenCV
     img = cv2.imread(group_path)
     if img is None:
         raise HTTPException(status_code=400, detail="Could not read image")
@@ -508,7 +479,6 @@ async def scan_group_photo(
     original_img = img.copy()
     h, w = img.shape[:2]
 
-    # Detect ALL faces in group photo using DeepFace
     try:
         face_objs = DeepFace.extract_faces(
             img_path=group_path,
@@ -519,29 +489,24 @@ async def scan_group_photo(
         face_objs = []
         print(f"Face detection error: {e}")
 
-    results = []
     matched_faces = []
     total_faces = len(face_objs)
 
     for i, face_obj in enumerate(face_objs):
         try:
-            # Get face region
             region = face_obj.get("facial_area", {})
             fx = region.get("x", 0)
             fy = region.get("y", 0)
             fw = region.get("w", 50)
             fh = region.get("h", 50)
 
-            # Crop the face
-            face_crop = original_img[max(0,fy):min(h,fy+fh), max(0,fx):min(w,fx+fw)]
+            face_crop = original_img[max(0, fy):min(h, fy+fh), max(0, fx):min(w, fx+fw)]
             if face_crop.size == 0:
                 continue
 
-            # Save face crop temporarily
             face_path = f"uploads/frames/face_{group_id}_{i}.jpg"
             cv2.imwrite(face_path, face_crop)
 
-            # Compare with target person
             compare_result = compare_faces(person["image_path"], face_path)
             confidence = compare_result["confidence"]
             is_match = compare_result["matched"] or confidence > 55
@@ -552,19 +517,14 @@ async def scan_group_photo(
                     "confidence": confidence,
                     "bbox": {"x": fx, "y": fy, "w": fw, "h": fh}
                 })
-
-                # Draw GREEN thick box on match
                 cv2.rectangle(img, (fx, fy), (fx+fw, fy+fh), (0, 200, 0), 3)
-                # Label background
                 label = f"FOUND {confidence:.0f}%"
                 (lw, lh), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
                 cv2.rectangle(img, (fx, fy-lh-10), (fx+lw+8, fy), (0, 200, 0), -1)
-                cv2.putText(img, label, (fx+4, fy-6), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
+                cv2.putText(img, label, (fx+4, fy-6), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
             else:
-                # Draw grey box on non-matching faces
                 cv2.rectangle(img, (fx, fy), (fx+fw, fy+fh), (180, 180, 180), 1)
 
-            # Clean up temp face crop
             if os.path.exists(face_path):
                 os.remove(face_path)
 
@@ -572,15 +532,12 @@ async def scan_group_photo(
             print(f"Error processing face {i}: {e}")
             continue
 
-    # Save annotated image
     annotated_path = f"uploads/frames/annotated_{group_id}.jpg"
     cv2.imwrite(annotated_path, img)
 
-    # Convert annotated image to base64 for immediate display
     with open(annotated_path, "rb") as f:
         annotated_b64 = base64.b64encode(f.read()).decode("utf-8")
 
-    # Save to DB if match found
     if matched_faces:
         match_doc = {
             "_id": str(uuid.uuid4()),
@@ -611,7 +568,6 @@ async def scan_group_photo(
         alerts_col.insert_one(alert_doc)
         asyncio.create_task(broadcast_alert(alert_doc))
 
-    # Clean original group photo
     if os.path.exists(group_path):
         os.remove(group_path)
 
@@ -624,3 +580,187 @@ async def scan_group_photo(
         "annotated_image_b64": annotated_b64,
         "annotated_image_url": f"/uploads/frames/annotated_{group_id}.jpg"
     }
+
+
+# ========================
+# AI IMAGE DETECTOR ROUTE
+# ========================
+
+def extract_image_features(img_path: str) -> dict:
+    """Extract technical features from image to detect if AI generated."""
+    img = cv2.imread(img_path)
+    if img is None:
+        return {}
+
+    features = {}
+    h, w = img.shape[:2]
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray_f = gray.astype(np.float32)
+    noise = gray_f - cv2.GaussianBlur(gray_f, (5, 5), 0)
+    features["noise_std"] = float(np.std(noise))
+    features["noise_mean"] = float(np.mean(np.abs(noise)))
+
+    fft = np.fft.fft2(gray_f)
+    fft_shift = np.fft.fftshift(fft)
+    magnitude = np.log(np.abs(fft_shift) + 1)
+    features["freq_std"] = float(np.std(magnitude))
+    features["freq_high_ratio"] = float(np.mean(magnitude[h//4:3*h//4, w//4:3*w//4]) / (np.mean(magnitude) + 1e-6))
+
+    for i, ch in enumerate(['b', 'g', 'r']):
+        channel = img[:, :, i].astype(np.float32)
+        features[f"color_{ch}_std"] = float(np.std(channel))
+        features[f"color_{ch}_skew"] = float(np.mean((channel - np.mean(channel))**3) / (np.std(channel)**3 + 1e-6))
+
+    edges = cv2.Canny(gray, 50, 150)
+    features["edge_density"] = float(np.sum(edges > 0) / (h * w))
+    edge_grad = cv2.Laplacian(gray, cv2.CV_64F)
+    features["edge_sharpness"] = float(np.var(edge_grad))
+
+    dx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+    dy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+    gradient_mag = np.sqrt(dx**2 + dy**2)
+    features["texture_uniformity"] = float(np.std(gradient_mag) / (np.mean(gradient_mag) + 1e-6))
+
+    if w > 10:
+        left_half = gray[:, :w//2]
+        right_half_flipped = cv2.flip(gray[:, w//2:], 1)
+        min_w = min(left_half.shape[1], right_half_flipped.shape[1])
+        if min_w > 0:
+            sym_diff = np.mean(np.abs(left_half[:, :min_w].astype(float) - right_half_flipped[:, :min_w].astype(float)))
+            features["face_symmetry_diff"] = float(sym_diff)
+
+    features["image_width"] = w
+    features["image_height"] = h
+    features["aspect_ratio"] = float(w / h)
+
+    return features
+
+
+def classify_ai_or_real(features: dict) -> dict:
+    """Rule-based classifier using image forensics."""
+    ai_score = 0.0
+    reasons = []
+    checks = []
+
+    noise_std = features.get("noise_std", 5)
+    if noise_std < 3.5:
+        ai_score += 25
+        reasons.append("Unnaturally low noise levels (too clean)")
+        checks.append({"check": "Noise Analysis", "result": "Suspicious", "value": f"{noise_std:.2f}", "status": "fail"})
+    elif noise_std < 5.0:
+        ai_score += 10
+        checks.append({"check": "Noise Analysis", "result": "Slightly low", "value": f"{noise_std:.2f}", "status": "warn"})
+    else:
+        checks.append({"check": "Noise Analysis", "result": "Natural", "value": f"{noise_std:.2f}", "status": "pass"})
+
+    texture = features.get("texture_uniformity", 1.0)
+    if texture < 0.8:
+        ai_score += 20
+        reasons.append("Too-uniform texture (AI smoothing detected)")
+        checks.append({"check": "Texture Analysis", "result": "Suspicious", "value": f"{texture:.2f}", "status": "fail"})
+    elif texture < 1.2:
+        ai_score += 8
+        checks.append({"check": "Texture Analysis", "result": "Slightly smooth", "value": f"{texture:.2f}", "status": "warn"})
+    else:
+        checks.append({"check": "Texture Analysis", "result": "Natural", "value": f"{texture:.2f}", "status": "pass"})
+
+    freq_std = features.get("freq_std", 3.0)
+    if freq_std > 6.5:
+        ai_score += 15
+        reasons.append("Unusual frequency spectrum (GAN artifact pattern)")
+        checks.append({"check": "Frequency Spectrum", "result": "Suspicious", "value": f"{freq_std:.2f}", "status": "fail"})
+    else:
+        checks.append({"check": "Frequency Spectrum", "result": "Normal", "value": f"{freq_std:.2f}", "status": "pass"})
+
+    sym = features.get("face_symmetry_diff", 15)
+    if sym < 4.0:
+        ai_score += 20
+        reasons.append("Extreme facial symmetry (too perfect for real photo)")
+        checks.append({"check": "Face Symmetry", "result": "Too perfect", "value": f"{sym:.2f}", "status": "fail"})
+    elif sym < 8.0:
+        ai_score += 8
+        checks.append({"check": "Face Symmetry", "result": "Very symmetric", "value": f"{sym:.2f}", "status": "warn"})
+    else:
+        checks.append({"check": "Face Symmetry", "result": "Natural asymmetry", "value": f"{sym:.2f}", "status": "pass"})
+
+    color_stds = [features.get(f"color_{c}_std", 50) for c in ['b', 'g', 'r']]
+    color_balance = max(color_stds) - min(color_stds)
+    if color_balance < 5:
+        ai_score += 15
+        reasons.append("Unnaturally balanced color channels")
+        checks.append({"check": "Color Distribution", "result": "Suspicious", "value": f"balance={color_balance:.1f}", "status": "fail"})
+    else:
+        checks.append({"check": "Color Distribution", "result": "Natural", "value": f"balance={color_balance:.1f}", "status": "pass"})
+
+    edge_sharp = features.get("edge_sharpness", 500)
+    if edge_sharp > 3000:
+        ai_score += 10
+        reasons.append("Overly sharp edges (unnatural sharpness)")
+        checks.append({"check": "Edge Sharpness", "result": "Too sharp", "value": f"{edge_sharp:.0f}", "status": "warn"})
+    else:
+        checks.append({"check": "Edge Sharpness", "result": "Normal", "value": f"{edge_sharp:.0f}", "status": "pass"})
+
+    ai_score = min(100, ai_score)
+    real_score = 100 - ai_score
+
+    if ai_score >= 60:
+        verdict = "AI_GENERATED"
+        verdict_label = "Likely AI Generated"
+        verdict_color = "red"
+    elif ai_score >= 35:
+        verdict = "SUSPICIOUS"
+        verdict_label = "Suspicious — Possibly AI"
+        verdict_color = "orange"
+    else:
+        verdict = "REAL"
+        verdict_label = "Likely Real Photo"
+        verdict_color = "green"
+
+    return {
+        "verdict": verdict,
+        "verdict_label": verdict_label,
+        "verdict_color": verdict_color,
+        "ai_probability": round(ai_score, 1),
+        "real_probability": round(real_score, 1),
+        "reasons": reasons,
+        "checks": checks,
+        "features": {k: round(v, 3) if isinstance(v, float) else v for k, v in features.items()}
+    }
+
+
+@app.post("/detect-ai-image")
+async def detect_ai_image(image: UploadFile = File(...)):
+    """Detect whether an uploaded image is AI-generated or a real photograph."""
+    img_id = str(uuid.uuid4())
+    img_path = f"uploads/frames/aicheck_{img_id}.jpg"
+
+    with open(img_path, "wb") as f:
+        shutil.copyfileobj(image.file, f)
+
+    try:
+        features = extract_image_features(img_path)
+        if not features:
+            raise HTTPException(status_code=400, detail="Could not process image")
+
+        result = classify_ai_or_real(features)
+
+        with open(img_path, "rb") as f:
+            img_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+        result["image_b64"] = img_b64
+        result["filename"] = image.filename
+
+        if os.path.exists(img_path):
+            os.remove(img_path)
+
+        return {"success": True, "result": result}
+
+    except Exception as e:
+        if os.path.exists(img_path):
+            os.remove(img_path)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
