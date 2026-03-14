@@ -1,0 +1,13 @@
+node_modules/
+.next/
+__pycache__/
+*.pyc
+.env
+uploads/persons/*
+uploads/videos/*
+uploads/frames/*
+!uploads/persons/.gitkeep
+!uploads/videos/.gitkeep
+!uploads/frames/.gitkeep
+*.log
+.DS_Store
