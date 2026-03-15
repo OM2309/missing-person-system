@@ -333,7 +333,7 @@ export default function Home() {
                         sub: "Mobile scanner",
                       },
                       {
-                        href: "/ai-detector",
+                        href: "/ai-detactor",
                         icon: "🔬",
                         label: "AI Image Detector",
                         sub: "Detect fake photos",
